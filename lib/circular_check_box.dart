@@ -2,20 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Modified by Mash Ibtesum
-// Modified by Lorenzo Calisti
-
-library circular_check_box;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// A material design circular checkbox.
-///
-/// This checkbox is a modified version of `flutter/material.dart` [Checkbox],
-/// his behaviour is the same except this draws a circular shape instead of
-/// a squared.
+/// A material design checkbox.
 ///
 /// The checkbox itself does not maintain any state. Instead, when the state of
 /// the checkbox changes, the widget calls the [onChanged] callback. Most
@@ -29,10 +19,47 @@ import 'package:flutter/widgets.dart';
 ///
 /// Requires one of its ancestors to be a [Material] widget.
 ///
+/// {@tool dartpad --template=stateful_widget_scaffold_center}
+///
+/// This example shows how you can override the default theme of
+/// of a [CircularCheckBox] with a [MaterialStateProperty].
+/// In this example, the checkbox's color will be `Colors.blue` when the [CircularCheckBox]
+/// is being pressed, hovered, or focused. Otherwise, the checkbox's color will
+/// be `Colors.red`.
+///
+/// ```dart
+/// bool isChecked = false;
+///
+/// @override
+/// Widget build(BuildContext context) {
+///   Color getColor(Set<MaterialState> states) {
+///     const Set<MaterialState> interactiveStates = <MaterialState>{
+///       MaterialState.pressed,
+///       MaterialState.hovered,
+///       MaterialState.focused,
+///     };
+///     if (states.any(interactiveStates.contains)) {
+///       return Colors.blue;
+///     }
+///     return Colors.red;
+///   }
+///   return Checkbox(
+///     checkColor: Colors.white,
+///     fillColor: MaterialStateProperty.resolveWith(getColor),
+///     value: isChecked,
+///     onChanged: (bool? value) {
+///       setState(() {
+///         isChecked = value!;
+///       });
+///     },
+///   );
+/// }
+/// ```
+/// {@end-tool}
+///
 /// See also:
 ///
-///  * [Checkbox]
-///  * [CircularCheckBoxListTile], which combines this widget with a [ListTile] so that
+///  * [CheckboxListTile], which combines this widget with a [ListTile] so that
 ///    you can give the checkbox a label.
 ///  * [Switch], a widget with semantics similar to [CircularCheckBox].
 ///  * [Radio], for selecting among a set of explicit values.
@@ -40,7 +67,7 @@ import 'package:flutter/widgets.dart';
 ///  * <https://material.io/design/components/selection-controls.html#checkboxes>
 ///  * <https://material.io/design/components/lists.html#types>
 class CircularCheckBox extends StatefulWidget {
-  /// Creates a material design circular checkbox.
+  /// Creates a material design checkbox.
   ///
   /// The checkbox itself does not maintain any state. Instead, when the state of
   /// the checkbox changes, the widget calls the [onChanged] callback. Most
@@ -73,8 +100,9 @@ class CircularCheckBox extends StatefulWidget {
     this.visualDensity,
     this.focusNode,
     this.autofocus = false,
-  })  : assert(tristate || value != null),
-        super(key: key);
+    this.shape,
+    this.side,
+  }) : super(key: key);
 
   /// Whether this checkbox is checked.
   ///
@@ -110,6 +138,7 @@ class CircularCheckBox extends StatefulWidget {
   /// ```
   final ValueChanged<bool?>? onChanged;
 
+  /// {@template flutter.material.checkbox.mouseCursor}
   /// The cursor for a mouse pointer when it enters or is hovering over the
   /// widget.
   ///
@@ -120,6 +149,7 @@ class CircularCheckBox extends StatefulWidget {
   ///  * [MaterialState.hovered].
   ///  * [MaterialState.focused].
   ///  * [MaterialState.disabled].
+  /// {@endtemplate}
   ///
   /// When [value] is null and [tristate] is true, [MaterialState.selected] is
   /// included as a state.
@@ -137,8 +167,12 @@ class CircularCheckBox extends StatefulWidget {
   /// The color to use when this checkbox is checked.
   ///
   /// Defaults to [ThemeData.toggleableActiveColor].
+  ///
+  /// If [fillColor] returns a non-null color in the [MaterialState.selected]
+  /// state, it will be used instead of this color.
   final Color? activeColor;
 
+  /// {@template flutter.material.checkbox.fillColor}
   /// The color that fills the checkbox, in all [MaterialState]s.
   ///
   /// Resolves in the following states:
@@ -146,6 +180,7 @@ class CircularCheckBox extends StatefulWidget {
   ///  * [MaterialState.hovered].
   ///  * [MaterialState.focused].
   ///  * [MaterialState.disabled].
+  /// {@endtemplate}
   ///
   /// If null, then the value of [activeColor] is used in the selected
   /// state. If that is also null, the value of [CheckboxThemeData.fillColor]
@@ -155,14 +190,17 @@ class CircularCheckBox extends StatefulWidget {
   /// default state.
   final MaterialStateProperty<Color?>? fillColor;
 
+  /// {@template flutter.material.checkbox.checkColor}
   /// The color to use for the check icon when this checkbox is checked.
+  /// {@endtemplate}
   ///
-  /// Defaults to Color(0xFFFFFFFF)
+  /// If null, then the value of [CheckboxThemeData.checkColor] is used. If
+  /// that is also null, then Color(0xFFFFFFFF) is used.
   final Color? checkColor;
 
   /// If true the checkbox's [value] can be true, false, or null.
   ///
-  /// CircularCheckBox displays a dash when its value is null.
+  /// Checkbox displays a dash when its value is null.
   ///
   /// When a tri-state checkbox ([tristate] is true) is tapped, its [onChanged]
   /// callback will be applied to true if the current value is false, to null if
@@ -172,26 +210,35 @@ class CircularCheckBox extends StatefulWidget {
   /// If tristate is false (the default), [value] must not be null.
   final bool tristate;
 
+  /// {@template flutter.material.checkbox.materialTapTargetSize}
   /// Configures the minimum size of the tap target.
+  /// {@endtemplate}
   ///
-  /// Defaults to [ThemeData.materialTapTargetSize].
+  /// If null, then the value of [CheckboxThemeData.materialTapTargetSize] is
+  /// used. If that is also null, then the value of
+  /// [ThemeData.materialTapTargetSize] is used.
   ///
   /// See also:
   ///
   ///  * [MaterialTapTargetSize], for a description of how this affects tap targets.
   final MaterialTapTargetSize? materialTapTargetSize;
 
+  /// {@template flutter.material.checkbox.visualDensity}
   /// Defines how compact the checkbox's layout will be.
+  /// {@endtemplate}
   ///
   /// {@macro flutter.material.themedata.visualDensity}
   ///
+  /// If null, then the value of [CheckboxThemeData.visualDensity] is used. If
+  /// that is also null, then the value of [ThemeData.visualDensity] is used.
+  ///
   /// See also:
   ///
-  ///  * [ThemeData.visualDensity], which specifies the [density] for all widgets
-  ///    within a [Theme].
+  ///  * [ThemeData.visualDensity], which specifies the [visualDensity] for all
+  ///    widgets within a [Theme].
   final VisualDensity? visualDensity;
 
-  /// The color for the circular checkbox's [Material] when it has the input focus.
+  /// The color for the checkbox's [Material] when it has the input focus.
   ///
   /// If [overlayColor] returns a non-null color in the [MaterialState.focused]
   /// state, it will be used instead.
@@ -201,7 +248,7 @@ class CircularCheckBox extends StatefulWidget {
   /// [ThemeData.focusColor] is used.
   final Color? focusColor;
 
-  /// The color for the circular checkbox's [Material] when a pointer is hovering over it.
+  /// The color for the checkbox's [Material] when a pointer is hovering over it.
   ///
   /// If [overlayColor] returns a non-null color in the [MaterialState.hovered]
   /// state, it will be used instead.
@@ -211,13 +258,15 @@ class CircularCheckBox extends StatefulWidget {
   /// [ThemeData.hoverColor] is used.
   final Color? hoverColor;
 
-  /// The color for the circular checkbox's [Material].
+  /// {@template flutter.material.checkbox.overlayColor}
+  /// The color for the checkbox's [Material].
   ///
   /// Resolves in the following states:
   ///  * [MaterialState.pressed].
   ///  * [MaterialState.selected].
   ///  * [MaterialState.hovered].
   ///  * [MaterialState.focused].
+  /// {@endtemplate}
   ///
   /// If null, then the value of [activeColor] with alpha
   /// [kRadialReactionAlpha], [focusColor] and [hoverColor] is used in the
@@ -228,7 +277,9 @@ class CircularCheckBox extends StatefulWidget {
   /// is used in the pressed, focused and hovered state.
   final MaterialStateProperty<Color?>? overlayColor;
 
+  /// {@template flutter.material.checkbox.splashRadius}
   /// The splash radius of the circular [Material] ink response.
+  /// {@endtemplate}
   ///
   /// If null, then the value of [CheckboxThemeData.splashRadius] is used. If
   /// that is also null, then [kRadialReactionRadius] is used.
@@ -240,6 +291,23 @@ class CircularCheckBox extends StatefulWidget {
   /// {@macro flutter.widgets.Focus.autofocus}
   final bool autofocus;
 
+  /// {@template flutter.material.checkbox.shape}
+  /// The shape of the checkbox's [Material].
+  /// {@endtemplate}
+  ///
+  /// If this property is null then [CheckboxThemeData.shape] of [ThemeData.checkboxTheme]
+  /// is used. If that's null then the shape will be a [RoundedRectangleBorder]
+  /// with a circular corner radius of 1.0.
+  final OutlinedBorder? shape;
+
+  /// {@template flutter.material.checkbox.side}
+  /// The side of the checkbox's border.
+  /// {@endtemplate}
+  ///
+  /// If this property is null then [CheckboxThemeData.side] of [ThemeData.checkboxTheme]
+  /// is used. If that's null then the side will be width 2.
+  final BorderSide? side;
+
   /// The width of a checkbox widget.
   static const double width = 18.0;
 
@@ -248,62 +316,39 @@ class CircularCheckBox extends StatefulWidget {
 }
 
 class _CircularCheckBoxState extends State<CircularCheckBox>
-    with TickerProviderStateMixin {
-  bool get enabled => widget.onChanged != null;
-  late Map<Type, Action<Intent>> _actionMap;
+    with TickerProviderStateMixin, ToggleableStateMixin {
+  final _CheckboxPainter _painter = _CheckboxPainter();
+  bool? _previousValue;
 
   @override
   void initState() {
     super.initState();
-    _actionMap = <Type, Action<Intent>>{
-      ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: _actionHandler),
-    };
+    _previousValue = widget.value;
   }
 
-  void _actionHandler(ActivateIntent intent) {
-    if (widget.onChanged != null) {
-      switch (widget.value) {
-        case false:
-          widget.onChanged!(true);
-          break;
-        case true:
-          widget.onChanged!(widget.tristate ? null : false);
-          break;
-        default: // case null:
-          widget.onChanged!(false);
-          break;
-      }
-    }
-    final RenderObject renderObject = context.findRenderObject()!;
-    renderObject.sendSemanticsEvent(const TapSemanticEvent());
-  }
-
-  bool _focused = false;
-
-  void _handleFocusHighlightChanged(bool focused) {
-    if (focused != _focused) {
-      setState(() {
-        _focused = focused;
-      });
+  @override
+  void didUpdateWidget(CircularCheckBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _previousValue = oldWidget.value;
+      animateToValue();
     }
   }
 
-  bool _hovering = false;
-
-  void _handleHoverChanged(bool hovering) {
-    if (hovering != _hovering) {
-      setState(() {
-        _hovering = hovering;
-      });
-    }
+  @override
+  void dispose() {
+    _painter.dispose();
+    super.dispose();
   }
 
-  Set<MaterialState> get _states => <MaterialState>{
-        if (!enabled) MaterialState.disabled,
-        if (_hovering) MaterialState.hovered,
-        if (_focused) MaterialState.focused,
-        if (widget.value == null || widget.value!) MaterialState.selected,
-      };
+  @override
+  ValueChanged<bool?>? get onChanged => widget.onChanged;
+
+  @override
+  bool get tristate => widget.tristate;
+
+  @override
+  bool? get value => widget.value;
 
   MaterialStateProperty<Color?> get _widgetFillColor {
     return MaterialStateProperty.resolveWith((Set<MaterialState> states) {
@@ -352,18 +397,20 @@ class _CircularCheckBoxState extends State<CircularCheckBox>
         break;
     }
     size += effectiveVisualDensity.baseSizeAdjustment;
-    final BoxConstraints additionalConstraints = BoxConstraints.tight(size);
-    final MouseCursor effectiveMouseCursor =
-        MaterialStateProperty.resolveAs<MouseCursor?>(
-                widget.mouseCursor, _states) ??
-            themeData.checkboxTheme.mouseCursor?.resolve(_states) ??
-            MaterialStateProperty.resolveAs<MouseCursor>(
-                MaterialStateMouseCursor.clickable, _states);
+
+    final MaterialStateProperty<MouseCursor> effectiveMouseCursor =
+        MaterialStateProperty.resolveWith<MouseCursor>(
+            (Set<MaterialState> states) {
+      return MaterialStateProperty.resolveAs<MouseCursor?>(
+              widget.mouseCursor, states) ??
+          themeData.checkboxTheme.mouseCursor?.resolve(states) ??
+          MaterialStateMouseCursor.clickable.resolve(states);
+    });
+
     // Colors need to be resolved in selected and non selected states separately
     // so that they can be lerped between.
-    final Set<MaterialState> activeStates = _states
-      ..add(MaterialState.selected);
-    final Set<MaterialState> inactiveStates = _states
+    final Set<MaterialState> activeStates = states..add(MaterialState.selected);
+    final Set<MaterialState> inactiveStates = states
       ..remove(MaterialState.selected);
     final Color effectiveActiveColor =
         widget.fillColor?.resolve(activeStates) ??
@@ -376,16 +423,14 @@ class _CircularCheckBoxState extends State<CircularCheckBox>
             themeData.checkboxTheme.fillColor?.resolve(inactiveStates) ??
             _defaultFillColor.resolve(inactiveStates);
 
-    final Set<MaterialState> focusedStates = _states
-      ..add(MaterialState.focused);
+    final Set<MaterialState> focusedStates = states..add(MaterialState.focused);
     final Color effectiveFocusOverlayColor =
         widget.overlayColor?.resolve(focusedStates) ??
             widget.focusColor ??
             themeData.checkboxTheme.overlayColor?.resolve(focusedStates) ??
             themeData.focusColor;
 
-    final Set<MaterialState> hoveredStates = _states
-      ..add(MaterialState.hovered);
+    final Set<MaterialState> hoveredStates = states..add(MaterialState.hovered);
     final Color effectiveHoverOverlayColor =
         widget.overlayColor?.resolve(hoveredStates) ??
             widget.hoverColor ??
@@ -407,175 +452,111 @@ class _CircularCheckBoxState extends State<CircularCheckBox>
         effectiveActiveColor.withAlpha(kRadialReactionAlpha);
 
     final Color effectiveCheckColor = widget.checkColor ??
-        themeData.checkboxTheme.checkColor?.resolve(_states) ??
+        themeData.checkboxTheme.checkColor?.resolve(states) ??
         const Color(0xFFFFFFFF);
 
-    return FocusableActionDetector(
-      actions: _actionMap,
-      focusNode: widget.focusNode,
-      autofocus: widget.autofocus,
-      enabled: enabled,
-      onShowFocusHighlight: _handleFocusHighlightChanged,
-      onShowHoverHighlight: _handleHoverChanged,
-      mouseCursor: effectiveMouseCursor,
-      child: Builder(
-        builder: (BuildContext context) {
-          return _CircularCheckBoxRenderObjectWidget(
-            value: widget.value,
-            tristate: widget.tristate,
-            activeColor: effectiveActiveColor,
-            checkColor: effectiveCheckColor,
-            inactiveColor: effectiveInactiveColor,
-            focusColor: effectiveFocusOverlayColor,
-            hoverColor: effectiveHoverOverlayColor,
-            reactionColor: effectiveActivePressedOverlayColor,
-            inactiveReactionColor: effectiveInactivePressedOverlayColor,
-            splashRadius: widget.splashRadius ??
-                themeData.checkboxTheme.splashRadius ??
-                kRadialReactionRadius,
-            onChanged: widget.onChanged,
-            additionalConstraints: additionalConstraints,
-            vsync: this,
-            hasFocus: _focused,
-            hovering: _hovering,
-          );
-        },
+    return Semantics(
+      checked: widget.value == true,
+      child: buildToggleable(
+        mouseCursor: effectiveMouseCursor,
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        size: size,
+        painter: _painter
+          ..position = position
+          ..reaction = reaction
+          ..reactionFocusFade = reactionFocusFade
+          ..reactionHoverFade = reactionHoverFade
+          ..inactiveReactionColor = effectiveInactivePressedOverlayColor
+          ..reactionColor = effectiveActivePressedOverlayColor
+          ..hoverColor = effectiveHoverOverlayColor
+          ..focusColor = effectiveFocusOverlayColor
+          ..splashRadius = widget.splashRadius ??
+              themeData.checkboxTheme.splashRadius ??
+              kRadialReactionRadius
+          ..downPosition = downPosition
+          ..isFocused = states.contains(MaterialState.focused)
+          ..isHovered = states.contains(MaterialState.hovered)
+          ..activeColor = effectiveActiveColor
+          ..inactiveColor = effectiveInactiveColor
+          ..checkColor = effectiveCheckColor
+          ..value = value
+          ..previousValue = _previousValue
+          ..shape = widget.shape ??
+              themeData.checkboxTheme.shape ??
+              const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(1.0)),
+              )
+          ..side = widget.side ?? themeData.checkboxTheme.side,
       ),
     );
-  }
-}
-
-class _CircularCheckBoxRenderObjectWidget extends LeafRenderObjectWidget {
-  const _CircularCheckBoxRenderObjectWidget({
-    Key? key,
-    required this.value,
-    required this.tristate,
-    required this.activeColor,
-    required this.checkColor,
-    required this.inactiveColor,
-    required this.focusColor,
-    required this.hoverColor,
-    required this.reactionColor,
-    required this.inactiveReactionColor,
-    required this.splashRadius,
-    required this.onChanged,
-    required this.vsync,
-    required this.additionalConstraints,
-    required this.hasFocus,
-    required this.hovering,
-  })   : assert(tristate || value != null),
-        super(key: key);
-
-  final bool? value;
-  final bool tristate;
-  final bool hasFocus;
-  final bool hovering;
-  final Color activeColor;
-  final Color checkColor;
-  final Color inactiveColor;
-  final Color focusColor;
-  final Color hoverColor;
-  final Color reactionColor;
-  final Color inactiveReactionColor;
-  final double splashRadius;
-  final ValueChanged<bool?>? onChanged;
-  final TickerProvider vsync;
-  final BoxConstraints additionalConstraints;
-
-  @override
-  _RenderCircularCheckBox createRenderObject(BuildContext context) =>
-      _RenderCircularCheckBox(
-        value: value,
-        tristate: tristate,
-        activeColor: activeColor,
-        checkColor: checkColor,
-        inactiveColor: inactiveColor,
-        focusColor: focusColor,
-        hoverColor: hoverColor,
-        reactionColor: reactionColor,
-        inactiveReactionColor: inactiveReactionColor,
-        splashRadius: splashRadius,
-        onChanged: onChanged,
-        vsync: vsync,
-        additionalConstraints: additionalConstraints,
-        hasFocus: hasFocus,
-        hovering: hovering,
-      );
-
-  @override
-  void updateRenderObject(
-      BuildContext context, _RenderCircularCheckBox renderObject) {
-    renderObject
-      ..tristate = tristate
-      ..value = value
-      ..activeColor = activeColor
-      ..checkColor = checkColor
-      ..inactiveColor = inactiveColor
-      ..focusColor = focusColor
-      ..hoverColor = hoverColor
-      ..reactionColor = reactionColor
-      ..inactiveReactionColor = inactiveReactionColor
-      ..splashRadius = splashRadius
-      ..onChanged = onChanged
-      ..additionalConstraints = additionalConstraints
-      ..vsync = vsync
-      ..hasFocus = hasFocus
-      ..hovering = hovering;
   }
 }
 
 const double _kEdgeSize = CircularCheckBox.width;
 const double _kStrokeWidth = 2.0;
 
-class _RenderCircularCheckBox extends RenderToggleable {
-  _RenderCircularCheckBox({
-    bool? value,
-    required bool tristate,
-    required Color activeColor,
-    required this.checkColor,
-    required Color inactiveColor,
-    Color? focusColor,
-    Color? hoverColor,
-    Color? reactionColor,
-    Color? inactiveReactionColor,
-    required double splashRadius,
-    required BoxConstraints additionalConstraints,
-    ValueChanged<bool?>? onChanged,
-    required bool hasFocus,
-    required bool hovering,
-    required TickerProvider vsync,
-  })   : _oldValue = value,
-        super(
-          value: value,
-          tristate: tristate,
-          activeColor: activeColor,
-          inactiveColor: inactiveColor,
-          focusColor: focusColor,
-          hoverColor: hoverColor,
-          reactionColor: reactionColor,
-          inactiveReactionColor: inactiveReactionColor,
-          splashRadius: splashRadius,
-          onChanged: onChanged,
-          additionalConstraints: additionalConstraints,
-          vsync: vsync,
-          hasFocus: hasFocus,
-          hovering: hovering,
-        );
-
-  bool? _oldValue;
-  Color checkColor;
-
-  @override
-  set value(bool? newValue) {
-    if (newValue == value) return;
-    _oldValue = value;
-    super.value = newValue;
+class _CheckboxPainter extends ToggleablePainter {
+  Color get checkColor => _checkColor!;
+  Color? _checkColor;
+  set checkColor(Color value) {
+    if (_checkColor == value) {
+      return;
+    }
+    _checkColor = value;
+    notifyListeners();
   }
 
-  @override
-  void describeSemanticsConfiguration(SemanticsConfiguration config) {
-    super.describeSemanticsConfiguration(config);
-    config.isChecked = value == true;
+  bool? get value => _value;
+  bool? _value;
+  set value(bool? value) {
+    if (_value == value) {
+      return;
+    }
+    _value = value;
+    notifyListeners();
+  }
+
+  bool? get previousValue => _previousValue;
+  bool? _previousValue;
+  set previousValue(bool? value) {
+    if (_previousValue == value) {
+      return;
+    }
+    _previousValue = value;
+    notifyListeners();
+  }
+
+  OutlinedBorder get shape => _shape!;
+  OutlinedBorder? _shape;
+  set shape(OutlinedBorder value) {
+    if (_shape == value) {
+      return;
+    }
+    _shape = value;
+    notifyListeners();
+  }
+
+  BorderSide? get side => _side;
+  BorderSide? _side;
+  set side(BorderSide? value) {
+    if (_side == value) {
+      return;
+    }
+    _side = value;
+    notifyListeners();
+  }
+
+  // The square outer bounds of the checkbox at t, with the specified origin.
+  // At t == 0.0, the outer rect's size is _kEdgeSize (Checkbox.width)
+  // At t == 0.5, .. is _kEdgeSize - _kStrokeWidth
+  // At t == 1.0, .. is _kEdgeSize
+  Rect _outerRectAt(Offset origin, double t) {
+    final double inset = 1.0 - (t - 0.5).abs() * 2.0;
+    final double size = _kEdgeSize - inset * _kStrokeWidth;
+    final Rect rect =
+        Rect.fromLTWH(origin.dx + inset, origin.dy + inset, size, size);
+    return rect;
   }
 
   // The checkbox's border color if value == false, or its fill color when
@@ -587,7 +568,7 @@ class _RenderCircularCheckBox extends RenderToggleable {
         : Color.lerp(inactiveColor, activeColor, t * 4.0)!;
   }
 
-  // checkColor stroke used to paint the check and dash.
+  // White stroke used to paint the check and dash.
   Paint _createStrokePaint() {
     return Paint()
       ..color = checkColor
@@ -645,33 +626,34 @@ class _RenderCircularCheckBox extends RenderToggleable {
   }
 
   @override
-  void paint(PaintingContext context, Offset offset) {
-    final Canvas canvas = context.canvas;
-    paintRadialReaction(canvas, offset, size.center(Offset.zero));
+  void paint(Canvas canvas, Size size) {
+    paintRadialReaction(canvas: canvas, origin: size.center(Offset.zero));
 
     final Paint strokePaint = _createStrokePaint();
     final Offset origin =
-        offset + (size / 2.0 - const Size.square(_kEdgeSize) / 2.0 as Offset);
+        size / 2.0 - const Size.square(_kEdgeSize) / 2.0 as Offset;
     final AnimationStatus status = position.status;
     final double tNormalized =
         status == AnimationStatus.forward || status == AnimationStatus.completed
             ? position.value
             : 1.0 - position.value;
-    final Offset center = (offset & size).center;
+    final Offset center = (size.center(Offset.zero));
 
     // Four cases: false to null, false to true, null to false, true to false
-    if (_oldValue == false || value == false) {
+    if (previousValue == false || value == false) {
       final double t = value == false ? 1.0 - tNormalized : tNormalized;
+      final Rect outer = _outerRectAt(origin, t);
+      final Path emptyCheckboxPath =
+          shape.copyWith(side: side).getOuterPath(outer);
       final Paint paint = Paint()..color = _colorAt(t);
 
       if (t <= 0.5) {
         _drawCircleBorder(canvas, center, 11, t, paint);
       } else {
-        // TODO: Extract the radius in a variable
         canvas.drawCircle(center, 13, paint);
 
         final double tShrink = (t - 0.5) * 2.0;
-        if (_oldValue == null || value == null)
+        if (previousValue == null || value == null)
           _drawDash(canvas, origin, tShrink, strokePaint);
         else
           _drawCheck(canvas, origin, tShrink, strokePaint);
@@ -679,12 +661,11 @@ class _RenderCircularCheckBox extends RenderToggleable {
     } else {
       // Two cases: null to true, true to null
       final Paint paint = Paint()..color = _colorAt(1.0);
-      // TODO: Extract the radius in a variable
       canvas.drawCircle(center, 12, paint);
 
       if (tNormalized <= 0.5) {
         final double tShrink = 1.0 - tNormalized * 2.0;
-        if (_oldValue == true)
+        if (previousValue == true)
           _drawCheck(canvas, origin, tShrink, strokePaint);
         else
           _drawDash(canvas, origin, tShrink, strokePaint);
